@@ -198,39 +198,32 @@ def sample(lm_model, seq, n_samples, ampler=None, beam_search=None, ignore_unk=F
 
 
 
-languages_set = set(['zh-en', 'zh-zh', 'en-zh'])
-lm_models = {}
-states = {}
-enc_dec = {}
-beam_search = {}
-indx_word = {}
-
-for languages in languages_set:
-  model_path = "static/"+languages+"/search_model.npz"
-  state_file = "static/"+languages+"/search_state.pkl"
-  states[languages] = prototype_state()
-  with open(state_file) as src:
-    states[languages].update(cPickle.load(src))
-  states[languages].update(eval("dict({})".format("")))
-
-  logging.basicConfig(level=getattr(logging, states[languages]['level']), format="%(asctime)s: %(name)s: %(levelname)s: %(message)s")
-
-  rng = numpy.random.RandomState(states[languages]['seed'])
-  enc_dec[languages] = RNNEncoderDecoder(states[languages], rng, skip_init=True)
-  enc_dec[languages].build()
-
-  lm_models[languages] =  enc_dec[languages].create_lm_model()
-  lm_models[languages].load(model_path)
-  indx_word[languages] = cPickle.load(open(states[languages]['word_indx'],'rb'))
-  beam_search[languages] = None
-  beam_search[languages] = BeamSearch(enc_dec[languages])
-  beam_search[languages].compile()
-
-  idict_src = cPickle.load(open(states[languages]['indx_word'],'r'))
 
 
-def translate(languages, source):
-    print "translate/", languages+"/"+source+"/"
+model_path = "path/to/search_model.npz"
+state_file = "path/to/search_state.pkl"
+states = prototype_state()
+with open(state_file) as src:
+states.update(cPickle.load(src))
+states.update(eval("dict({})".format("")))
+
+logging.basicConfig(level=getattr(logging, states['level']), format="%(asctime)s: %(name)s: %(levelname)s: %(message)s")
+
+rng = numpy.random.RandomState(states['seed'])
+enc_dec = RNNEncoderDecoder(states, rng, skip_init=True)
+enc_dec.build()
+
+lm_models =  enc_dec.create_lm_model()
+lm_models.load(model_path)
+indx_word = cPickle.load(open(states['word_indx'],'rb'))
+beam_search = None
+beam_search = BeamSearch(enc_dec)
+beam_search.compile()
+
+idict_src = cPickle.load(open(states['indx_word'],'r'))
+
+
+def translate( source):
     # source = "哈 哈 哈"
     # languages = "zh-en"
     start_time = time.time()
@@ -241,11 +234,11 @@ def translate(languages, source):
     logging.debug("Beam size: {}".format(n_samples))
     seqin = source.strip()
     print source
-    seq, parsed_in = parse_input(states[languages], indx_word[languages], seqin, idx2word=idict_src)
-    trans, costs, alignment = sample(lm_models[languages], seq, n_samples, beam_search=beam_search[languages], ignore_unk=False, normalize=False)
+    seq, parsed_in = parse_input(states, indx_word, seqin, idx2word=idict_src)
+    trans, costs, alignment = sample(lm_models, seq, n_samples, beam_search=beam_search, ignore_unk=False, normalize=False)
     best = numpy.argmin(costs)
     print type(trans[best])
     return trans[best], alignment
 
 if __name__ == "__main__":
-    print translate( "zh-en","我 的 家 在 沈阳")
+    print translate("我 的 家 在 沈阳")
