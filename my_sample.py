@@ -12,9 +12,10 @@ import numpy
 
 import experiments.nmt
 from experiments.nmt import\
-    RNNEncoderDecoder,\
     prototype_state,\
     parse_input
+
+from my_encdec import RNNEncoderDecoder
 
 from experiments.nmt.numpy_compat import argpartition
 
